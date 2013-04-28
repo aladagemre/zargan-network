@@ -1,9 +1,9 @@
 import codecs
 
-f = codecs.open("data/stats20110912-01.txt", encoding="latin5")
-o = open("data/filtered.txt", "w")
+f = codecs.open("zargan/data/stats20110912-01.txt", encoding="latin5")
+o = open("zargan/data/filtered.txt", "w")
 
-f.readline()
+o.write(f.readline())
 for line in f:
     if line.count("|") != 11:
         continue
