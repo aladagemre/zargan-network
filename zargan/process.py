@@ -24,7 +24,6 @@ import datetime
 import time
 import itertools
 import logging
-from memory_profiler import profile
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -106,7 +105,6 @@ def cluster(data, window_size=300.0):
     @param window_size: maximum seperation between two points in a cluster.
     TODO: Test this
     """
-    clusters = []
     # Start with the initial item.
     current_cluster = [data[0]]
     i = 0
@@ -122,18 +120,16 @@ def cluster(data, window_size=300.0):
             # add the item to the current cluster. They should be related.
             current_cluster.append(data[i + 1])
         else:
-            # if not, finalize the cluster and create a new one.
-            #clusters.append(current_cluster)
-            yield current_cluster
-
+            # if not, finalize the cluster and yield it.
+            a = current_cluster
             current_cluster = [data[i + 1]]
+            yield a
+            # TODO: check if this works properly.
+
         i += 1
 
-    # Add the last cluster to the clusters list.
-    #clusters.append(current_cluster)
+    # yield the last current cluster
     yield current_cluster
-
-    #return clusters
 
 
 class ZarganApp(object):
@@ -182,7 +178,7 @@ class ZarganApp(object):
             if not len(fields) == 12:
                 continue
             records.append(Record(fields))
-            i+=1
+            i += 1
             if i == self.item_count:
                 break
 
@@ -260,12 +256,3 @@ if __name__ == "__main__":
         # If no parameters specified, run with the defaults.
         app = ZarganApp()
         app.run()
-
-
-
-
-
-
-
-
-
