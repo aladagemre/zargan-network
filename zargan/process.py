@@ -154,8 +154,16 @@ class ZarganApp(object):
         """Main method of this class."""
         self.read_input()
         self.generate_hashmap()
-        self.generate_graph()
-        self.produce_output()
+        self.generate_histogram()
+        self.prune_histogram()
+        self.write_text()
+        graph_choice = raw_input("Do you want to generate graph? [y/n]")
+        if graph_choice == "y":
+            logger.info("Generating graph may take a while...")
+            self.generate_graph()
+            self.write_graph()
+        else:
+            logger.info("No graphs will be generated.")
 
     def read_input(self):
         """Reads from the input file and creates
@@ -197,20 +205,17 @@ class ZarganApp(object):
         for record in self.records:
             hash_map[record.ip].append(record)
 
-
-    def generate_graph(self):
-        """Generates a NetworkX Graph according to co-session.
+    def generate_histogram(self):
+        """Generates a histogram according to co-session.
         For each IP Address:
             Detect searches within the same session (by the same person)
-            Add an edge between these two search terms in the graph; increase weight if the edge already exists.
+            Record co-occurrence frequences.
 
-        Prune the graph according to edge weights so that noise can be eliminated.
+        Prune the histogram according to occurence frequencies so that noise can be eliminated.
         """
-        logger.info("Graph construction starts...")
-        # Create the nodes from the record objects.
-        self.graph = graph = OccurrenceGraph()
-        #graph.add_nodes_from([record.arama for record in self.records])
+        logger.info("Histogram construction starts...")
         del self.records
+        self.occurrence_histogram = hist = collections.defaultdict(int)
 
         # Now we need to detect the sessions.
         # for each ip, search_list pair,
@@ -226,18 +231,48 @@ class ZarganApp(object):
                     for combination in combinations:
                         u = combination[0][1].arama
                         v = combination[1][1].arama
-                        if graph.has_edge(u, v):
-                            graph[u][v]['weight'] += 1
+                        if hist.has_key((u, v)):
+                            hist[(u, v)] += 1
                         else:
-                            graph.add_edge(u, v, weight=1)
+                            hist[(v, u)] += 1
 
-        self.graph.prune(threshold=self.prune_threshold)
+    def prune_histogram(self):
+        logger.info("Pruning the edges with weight < {0}".format(self.prune_threshold))
+        hist = self.occurrence_histogram
+        delete_list = collections.deque()
+        for (key, value) in hist.iteritems():
+            if value < self.prune_threshold:
+                delete_list.append(key)
+        for item in delete_list:
+            del hist[item]
 
-    def produce_output(self):
+        logger.info("Pruning finished...")
+
+    def write_text(self):
+        logger.info("Writing the edges to a text file...")
+        hist = self.occurrence_histogram
+        print hist.keys()[0]
+        items = ["{0} - {1} : {2}".format(edge[0].encode("latin5"), edge[1].encode("latin5"), hist[edge]) for edge in sorted(hist.keys())]
+
+        filename = "{0}-output.txt".format(".".join(self.filename.split(".")[:-1]))
+        o = open(filename, "w")
+        o.write("\n".join(items))
+        o.close()
+
+        logger.info("Writing finished: {0}".format(filename))
+
+    def generate_graph(self):
+        # Create the nodes from the record objects.
+        self.graph = graph = OccurrenceGraph()
+        for key, value in self.occurrence_histogram.iteritems():
+            graph.add_edge(key[0], key[1], weight=value)
+
+    def write_graph(self):
         """Displays the resulting graph on a window and writes it to a file in GraphML format.
         Output filename will be {input}.graphml
         """
-        self.graph.draw()
+        if self.graph.number_of_nodes() < 100:
+            self.graph.draw()
         self.graph.write_graphml("{0}.graphml".format(self.filename))
 
 
@@ -249,10 +284,13 @@ if __name__ == "__main__":
         window_size = float(sys.argv[3])
         prune_threshold = int(sys.argv[4])
         # Run the ZarganApp with the parameters.
-        app = ZarganApp(filename, item_count, window_size, prune_threshold)
+        params = (filename, item_count, window_size, prune_threshold)
+        app = ZarganApp(*params)
         app.run()
 
     except (IndexError, IOError) as e:
+        logger.error(e)
         # If no parameters specified, run with the defaults.
+        logger.warning("Running with default settings...")
         app = ZarganApp()
         app.run()
