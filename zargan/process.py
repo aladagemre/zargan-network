@@ -196,6 +196,8 @@ class ZarganApp(object):
         else:
             logger.info("No graphs will be generated.")
 
+        logger.info("Computation has finished... See the outputs.")
+        
     def read_input(self):
         """Reads from the input file and creates
         a list of Record objects.
