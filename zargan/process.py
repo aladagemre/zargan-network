@@ -32,6 +32,29 @@ logger = logging.getLogger("ZarganApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
+class Index(object):
+    def __init__(self):
+        self.id_to_value = {}
+        self.value_to_id = {}
+        self.last_id = 0
+
+    def get_index_of(self, value):
+        result = self.value_to_id.get(value)
+        if result:
+            return result
+        else:
+            self.last_id += 1
+            self.id_to_value[self.last_id] = value
+            self.value_to_id[value] = self.last_id
+            return self.last_id
+
+    def get_value_of(self, key):
+        result = self.id_to_value.get(key)
+        if not result:
+            raise KeyError, "This key ({0}) does not exist in the index.".format(key)
+        return result
+
+
 class Record(object):
     def __init__(self, fields):
         self.arama = fields[0].lower()
@@ -86,7 +109,6 @@ class OccurrenceGraph(nx.Graph):
         logger.info("Pruning the graph...")
         logger.info("Nodes: {0}; Edges: {1}".format(self.number_of_nodes(), self.number_of_edges()))
         for edge in self.edges(data=True):
-            #print edge
             if edge[2]['weight'] < threshold:
                 self.remove_edge(edge[0], edge[1])
 
@@ -133,7 +155,7 @@ def cluster(data, window_size=300.0):
 
 
 class ZarganApp(object):
-    def __init__(self, filename="zargan/data/filtered2.txt", item_count=1000, window_size=300.0, prune_threshold=2):
+    def __init__(self, filename="zargan/data/filtered2.txt", item_count=1000, window_size=300.0, prune_threshold=2, generate_graph=None):
         """Main Application that takes the search data in and finds the co-searched terms.
         Adds edges between those terms and generates a graph. Applies pruning and displays the results.
         Resulting graph is expected to reflect meaningful relationships between nodes (words) that are
@@ -149,16 +171,25 @@ class ZarganApp(object):
         self.window_size = window_size
         self.prune_threshold = prune_threshold
         self.item_count = item_count
+        self.graph_choice = None
+        if generate_graph is True:
+            self.graph_choice = "y"
+        elif generate_graph is False:
+            self.graph_choice = "n"
 
     def run(self):
         """Main method of this class."""
         self.read_input()
         self.generate_hashmap()
+        self.check_fraud()
+        #return
         self.generate_histogram()
         self.prune_histogram()
         self.write_text()
-        graph_choice = raw_input("Do you want to generate graph? [y/n]")
-        if graph_choice == "y":
+        if self.graph_choice is None:
+            self.graph_choice = raw_input("Do you want to generate graph? [y/n]")
+
+        if self.graph_choice == "y":
             logger.info("Generating graph may take a while...")
             self.generate_graph()
             self.write_graph()
@@ -205,6 +236,21 @@ class ZarganApp(object):
         for record in self.records:
             hash_map[record.ip].append(record)
 
+    def check_fraud(self, top=3):
+        ips = sorted(self.hash_map.keys())
+        tuples = []
+        for ip in ips:
+            count = len(self.hash_map[ip])
+            if count > 300:
+                tuples.append((count, ip))
+                #print "{1} - {0}".format(ip, count)
+                #print self.hash_map[ip]
+
+        tuples.sort(reverse=True)
+        top_x = tuples[:top]
+        for ip in top_x:
+            del self.hash_map[ip[1]]
+
     def generate_histogram(self):
         """Generates a histogram according to co-session.
         For each IP Address:
@@ -219,7 +265,10 @@ class ZarganApp(object):
 
         # Now we need to detect the sessions.
         # for each ip, search_list pair,
+        ips = 0
+        self.index = index = Index()
         for ip, searches in self.hash_map.iteritems():
+            ips += 1
             # get the first one.
             min_date = searches[0].get_date_in_secs()
             # get all of them and subtract the first one, making the first record 0 always. (for performance)
@@ -231,10 +280,14 @@ class ZarganApp(object):
                     for combination in combinations:
                         u = combination[0][1].arama
                         v = combination[1][1].arama
-                        if hist.has_key((u, v)):
-                            hist[(u, v)] += 1
+                        u_id = index.get_index_of(u)
+                        v_id = index.get_index_of(v)
+                        if (u_id, v_id) in hist:
+                            hist[(u_id, v_id)] += 1
                         else:
-                            hist[(v, u)] += 1
+                            hist[(v_id, u_id)] += 1
+            if ips%50000 == 0:
+                logger.debug("{0} IPs - {1} MB".format(ips, sys.getsizeof(hist)/1024.0/1024.0))
 
     def prune_histogram(self):
         logger.info("Pruning the edges with weight < {0}".format(self.prune_threshold))
@@ -251,9 +304,12 @@ class ZarganApp(object):
     def write_text(self):
         logger.info("Writing the edges to a text file...")
         hist = self.occurrence_histogram
-        print hist.keys()[0]
-        items = ["{0} - {1} : {2}".format(edge[0].encode("latin5"), edge[1].encode("latin5"), hist[edge]) for edge in sorted(hist.keys())]
+        #items = ["{0} - {1} : {2}".format(edge[0].encode("latin5"), edge[1].encode("latin5"), hist[edge]) for edge in
+                 #sorted(hist.keys())]
+        gt = lambda id: self.index.get_value_of(id).encode("latin5")
 
+
+        items = ["{0} - {1} : {2}".format(gt(edge[0]), gt(edge[1]), hist[edge]) for edge in sorted(hist.keys())]
         filename = "{0}-output.txt".format(".".join(self.filename.split(".")[:-1]))
         o = open(filename, "w")
         o.write("\n".join(items))
@@ -264,8 +320,9 @@ class ZarganApp(object):
     def generate_graph(self):
         # Create the nodes from the record objects.
         self.graph = graph = OccurrenceGraph()
+        gt = lambda id: self.index.get_value_of(id)
         for key, value in self.occurrence_histogram.iteritems():
-            graph.add_edge(key[0], key[1], weight=value)
+            graph.add_edge(gt(key[0]), gt(key[1]), weight=value)
 
     def write_graph(self):
         """Displays the resulting graph on a window and writes it to a file in GraphML format.
