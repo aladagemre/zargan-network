@@ -323,14 +323,17 @@ class ZarganApp(object):
         gt = lambda id: self.index.get_value_of(id)
         for key, value in self.occurrence_histogram.iteritems():
             graph.add_edge(gt(key[0]), gt(key[1]), weight=value)
+        logger.info("Generation of the graph has finished.")
 
     def write_graph(self):
         """Displays the resulting graph on a window and writes it to a file in GraphML format.
         Output filename will be {input}.graphml
         """
-        if self.graph.number_of_nodes() < 100:
-            self.graph.draw()
-        self.graph.write_graphml("{0}.graphml".format(self.filename))
+        """if self.graph.number_of_nodes() < 100:
+            self.graph.draw()"""
+        graph_filename = "{0}.graphml".format(self.filename)
+        self.graph.write_graphml(graph_filename)
+        logger.info("Wrote the graph: {0}".format(graph_filename))
 
 
 if __name__ == "__main__":

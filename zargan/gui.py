@@ -5,7 +5,7 @@ from multiprocessing import Process
 import sys
 from PyQt4.QtCore import SIGNAL
 from PyQt4.QtGui import QApplication, QMainWindow, QGridLayout, QWidget, \
-    QPushButton, QLabel, QFileDialog, QLineEdit, QSpinBox
+    QPushButton, QLabel, QFileDialog, QLineEdit, QSpinBox, QCheckBox
 
 from process import *
 
@@ -44,9 +44,12 @@ class MainWindow(QMainWindow):
         self.threshold_spin.setRange(0, 1000)
         self.threshold_spin.setSingleStep(1)
 
+        self.generate_graph_check = QCheckBox("Generate Graph")
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
-        self.output_button = QPushButton("Display Output")
+        #self.output_button = QPushButton("Display Output")
+
+
 
         layout.addWidget(self.input_file_label, 0, 0)
         layout.addWidget(self.input_file_edit, 0, 1)
@@ -57,9 +60,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.window_size_spin, 2, 1)
         layout.addWidget(self.threshold_label, 3, 0)
         layout.addWidget(self.threshold_spin, 3, 1)
-        layout.addWidget(self.start_button, 4, 0)
-        layout.addWidget(self.stop_button, 4, 1)
-        layout.addWidget(self.output_button, 5, 0)
+        layout.addWidget(self.generate_graph_check, 4, 0)
+        layout.addWidget(self.start_button, 5, 0)
+        layout.addWidget(self.stop_button, 5, 1)
+        #layout.addWidget(self.output_button, 6, 0)
+
 
         self.connectSlots()
 
@@ -70,7 +75,6 @@ class MainWindow(QMainWindow):
         self.connect(self.browse_button, SIGNAL('clicked()'), self.browseFile)
         self.connect(self.stop_button, SIGNAL('clicked()'), self.stop)
         self.connect(self.start_button, SIGNAL('clicked()'), self.start)
-        #self.connect(self.new_job_button, SIGNAL('clicked()'), self.start_new_nob)
 
     def browseFile(self):
         self.input_file_edit.setText(QFileDialog.getOpenFileName())
@@ -80,11 +84,11 @@ class MainWindow(QMainWindow):
         item_count = int(self.line_count_edit.text())
         window_size = int(self.window_size_spin.text())
         prune_threshold = int(self.threshold_spin.text())
-        generate_graph = False
+        generate_graph = self.generate_graph_check.isChecked()
 
         params = (filename, item_count, window_size, prune_threshold, generate_graph)
-        app = ZarganApp(*params)
-        self.computation = Process(target=app.run, args=())
+        self.app = ZarganApp(*params)
+        self.computation = Process(target=self.app.run, args=())
         self.computation.start()
 
     def stop(self):
@@ -92,8 +96,8 @@ class MainWindow(QMainWindow):
         self.computation.terminate()
 
     def generate_graph(self):
-        app.generate_graph()
-        app.write_graph()
+        self.app.generate_graph()
+        self.app.write_graph()
 
     def showStatusMessage(self, message):
         self.statusBar().showMessage(message)
