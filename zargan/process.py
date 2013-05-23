@@ -313,8 +313,11 @@ class ZarganApp(object):
         gt = lambda id: self.index.get_value_of(id).encode("utf-8")
 
 
-        items = ["{0} - {1} : {2}".format(gt(edge[0]), gt(edge[1]), hist[edge]) for edge in sorted(hist.keys())]
-        filename = "{0}-output.txt".format(".".join(self.filename.split(".")[:-1]))
+        records = [(hist[edge], gt(edge[0]), gt(edge[1])) for edge in hist.keys()]
+        records.sort(key=lambda x: (-x[0], x[1], x[2]))
+
+        items = ["{0}; {1}; {2}".format(*record) for record in records]
+        filename = "{0}-output.csv".format(".".join(self.filename.split(".")[:-1]))
         o = open(filename, "w")
         o.write("\n".join(items))
         o.close()

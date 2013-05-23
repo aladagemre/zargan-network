@@ -24,7 +24,7 @@ def filter_ip(cols):
         return True
 
 def char_fix(line):
-    return line.replace('ý', 'ı').replace('ý', 'ı').replace('þ', 'ş')
+    return line.replace('ý', 'ı').replace('ý', 'ı').replace('þ', 'ş').replace('ð', 'ğ')
 
 def main():
     f = codecs.open("zargan/data/stats20110912-01.txt", encoding="iso-8859-1")

@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Process
 
+import os
 import sys
+
 from PyQt4.QtCore import SIGNAL
 from PyQt4.QtGui import QApplication, QMainWindow, QGridLayout, QWidget, \
     QPushButton, QLabel, QFileDialog, QLineEdit, QSpinBox, QCheckBox
@@ -22,8 +24,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.widget)
         self.setWindowTitle("Zargan Network Analyzer")
 
+        data = "%s/data/filtered.txt" % os.path.abspath(os.path.curdir)
+
         self.input_file_label = QLabel("Input File")
-        self.input_file_edit = QLineEdit()
+        self.input_file_edit = QLineEdit(data)
         self.browse_button = QPushButton("Browse")
 
         self.line_count_label = QLabel("First N lines")
