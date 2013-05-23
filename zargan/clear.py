@@ -23,8 +23,11 @@ def filter_ip(cols):
     if cols[1] in ips:
         return True
 
+def char_fix(line):
+    return line.replace('ý', 'ı').replace('ý', 'ı').replace('þ', 'ş')
+
 def main():
-    f = codecs.open("zargan/data/stats20110912-01.txt", encoding="latin5")
+    f = codecs.open("zargan/data/stats20110912-01.txt", encoding="iso-8859-1")
     o = open("zargan/data/filtered.txt", "w")
 
     o.write(f.readline())
@@ -40,7 +43,7 @@ def main():
         if filter_campaign(cols):
             continue
 
-        o.write(line.encode("utf8"))
+        o.write(char_fix(line.encode("utf8")))
     o.close()
 
 

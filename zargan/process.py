@@ -151,7 +151,7 @@ def cluster(data, window_size=300.0):
         i += 1
 
     # yield the last current cluster
-    yield current_cluster
+    yield list(set(current_cluster))
 
 
 class ZarganApp(object):
@@ -197,7 +197,7 @@ class ZarganApp(object):
             logger.info("No graphs will be generated.")
 
         logger.info("Computation has finished... See the outputs.")
-        
+
     def read_input(self):
         """Reads from the input file and creates
         a list of Record objects.
@@ -206,8 +206,8 @@ class ZarganApp(object):
 
         # Create a list for putting the graphs in.
         self.records = records = []
-        # Open the input file with latin5 codec.
-        f = codecs.open(self.filename, encoding="latin5")
+        # Open the input file with iso-8859-1 codec.
+        f = codecs.open(self.filename, encoding="utf-8")
         # Read the first line since it's header.
         f.readline()
 
@@ -282,6 +282,8 @@ class ZarganApp(object):
                     for combination in combinations:
                         u = combination[0][1].arama
                         v = combination[1][1].arama
+                        if u == v:
+                            continue
                         u_id = index.get_index_of(u)
                         v_id = index.get_index_of(v)
                         if (u_id, v_id) in hist:
@@ -308,7 +310,7 @@ class ZarganApp(object):
         hist = self.occurrence_histogram
         #items = ["{0} - {1} : {2}".format(edge[0].encode("latin5"), edge[1].encode("latin5"), hist[edge]) for edge in
                  #sorted(hist.keys())]
-        gt = lambda id: self.index.get_value_of(id).encode("latin5")
+        gt = lambda id: self.index.get_value_of(id).encode("utf-8")
 
 
         items = ["{0} - {1} : {2}".format(gt(edge[0]), gt(edge[1]), hist[edge]) for edge in sorted(hist.keys())]
