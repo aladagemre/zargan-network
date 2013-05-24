@@ -1,5 +1,6 @@
 # encoding: utf-8
 import codecs
+import sys
 
 def filter_campaign(cols):
     """
@@ -26,9 +27,9 @@ def filter_ip(cols):
 def char_fix(line):
     return line.replace('ý', 'ı').replace('ý', 'ı').replace('þ', 'ş').replace('ð', 'ğ')
 
-def main():
-    f = codecs.open("zargan/data/stats20110912-01.txt", encoding="iso-8859-1")
-    o = open("zargan/data/filtered.txt", "w")
+def main(in_file="zargan/data/stats20080113-02.txt", out_file="zargan/data/filtered.txt"):
+    f = codecs.open(in_file, encoding="iso-8859-1")
+    o = open(out_file, "w")
 
     o.write(f.readline())
     for line in f:
@@ -48,4 +49,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main(sys.argv[1], sys.argv[2])
+    except IndexError:
+        main()
