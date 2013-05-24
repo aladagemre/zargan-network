@@ -240,18 +240,20 @@ class ZarganApp(object):
 
     def check_fraud(self, top=3):
         ips = sorted(self.hash_map.keys())
-        tuples = []
+        #tuples = []
+        remove_candidate = []
         for ip in ips:
             count = len(self.hash_map[ip])
-            if count > 300:
-                tuples.append((count, ip))
+            if count > 1000:
+                remove_candidate.append(ip)
+                #tuples.append((count, ip))
                 #print "{1} - {0}".format(ip, count)
                 #print self.hash_map[ip]
 
-        tuples.sort(reverse=True)
-        top_x = tuples[:top]
-        for ip in top_x:
-            del self.hash_map[ip[1]]
+        #tuples.sort(reverse=True)
+        #top_x = tuples[:top]
+        for ip in remove_candidate:
+            del self.hash_map[ip]
 
     def generate_histogram(self):
         """Generates a histogram according to co-session.
