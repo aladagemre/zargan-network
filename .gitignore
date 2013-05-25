@@ -34,3 +34,5 @@ nosetests.xml
 .project
 .pydevproject
 .idea
+
+zargan/data/nltk_data

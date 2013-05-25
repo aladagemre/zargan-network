@@ -27,6 +27,7 @@ import logging
 
 import networkx as nx
 import matplotlib.pyplot as plt
+from utils import generate_histogram
 
 logger = logging.getLogger("ZarganApp")
 logging.basicConfig(level=logging.DEBUG)
@@ -131,7 +132,7 @@ def cluster(data, window_size=300.0):
     current_cluster = [data[0]]
     i = 0
     N = len(data)
-
+    #print data
     # for all items except for the last one,
     while i < N - 1:
         current_item = data[i]
@@ -155,7 +156,7 @@ def cluster(data, window_size=300.0):
 
 
 class ZarganApp(object):
-    def __init__(self, filename="zargan/data/filtered2.txt", item_count=1000, window_size=300.0, prune_threshold=2, generate_graph=None):
+    def __init__(self, filename="zargan/data/filtered.txt", item_count=2400000, window_size=300.0, prune_threshold=20, generate_graph=None):
         """Main Application that takes the search data in and finds the co-searched terms.
         Adds edges between those terms and generates a graph. Applies pruning and displays the results.
         Resulting graph is expected to reflect meaningful relationships between nodes (words) that are
@@ -182,7 +183,7 @@ class ZarganApp(object):
         self.read_input()
         self.generate_hashmap()
         self.check_fraud()
-        #return
+        self.write_hashmap()
         self.generate_histogram()
         self.prune_histogram()
         self.write_text()
@@ -255,6 +256,13 @@ class ZarganApp(object):
         for ip in remove_candidate:
             del self.hash_map[ip]
 
+    def write_hashmap(self):
+        ho = open("hashmap.txt","w")
+        ips = sorted(self.hash_map.keys())
+        for ip in ips:
+            ho.write("{ip}\t{records}\n".format(ip=ip, records=";".join(map(lambda x: x.arama.encode("utf-8"), self.hash_map[ip]))))
+        ho.close()
+
     def generate_histogram(self):
         """Generates a histogram according to co-session.
         For each IP Address:
@@ -279,7 +287,12 @@ class ZarganApp(object):
             dates = [(search.get_date_in_secs() - min_date, search) for search in searches]
             if len(dates) > 1:
                 clusters = cluster(data=dates, window_size=self.window_size)
+
                 for cluster_ in clusters:
+                    cluster_size = len(cluster_)
+                    if cluster_size > 100:
+                        print("Suspicious IP: {ip}, one cluster: {c}".format(ip=ip, c=cluster_size))
+                        continue
                     combinations = itertools.combinations(cluster_, 2)
                     for combination in combinations:
                         u = combination[0][1].arama
@@ -292,7 +305,7 @@ class ZarganApp(object):
                             hist[(u_id, v_id)] += 1
                         else:
                             hist[(v_id, u_id)] += 1
-            if ips%50000 == 0:
+            if ips % 50000 == 0:
                 logger.debug("{0} IPs - {1} MB".format(ips, sys.getsizeof(hist)/1024.0/1024.0))
 
     def prune_histogram(self):
