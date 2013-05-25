@@ -1,6 +1,7 @@
 # encoding: utf-8
 import codecs
 import sys
+from nltk.stem import WordNetLemmatizer
 
 def char_fix(line):
     try:
@@ -54,6 +55,8 @@ def main(in_file="zargan/data/stats20080113-02.txt", out_file="zargan/data/filte
     o = open(out_file, "w")
     eliminated = open("zargan/data/eliminated.txt", "w")
     o.write(f.readline())
+    wnl = WordNetLemmatizer()
+
     for line in f:
         cols = line.split("|")
 
@@ -65,11 +68,16 @@ def main(in_file="zargan/data/stats20080113-02.txt", out_file="zargan/data/filte
             continue
         if filter_campaign(cols):
             continue
-        if filter_dictionary(cols):
-            eliminated.write("%s\n" % char_fix(cols[0]).lower())
-            continue
 
-        o.write("%s\n" % char_fix(line.encode("utf8")))
+        word = cols[0]
+        ip = cols[1]
+
+        if filter_dictionary(cols):
+            eliminated.write("%s\n" % char_fix(word).lower())
+            continue
+        if cols[8] == 2:
+            cols[0] = wnl.lemmatize(cols[0])
+        o.write("%s\n" % char_fix("|".join(cols).encode("utf8")))
     o.close()
     eliminated.close()
 
