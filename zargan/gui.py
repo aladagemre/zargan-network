@@ -49,6 +49,7 @@ class MainWindow(QMainWindow):
         self.threshold_spin.setSingleStep(1)
 
         self.generate_graph_check = QCheckBox("Generate Graph")
+        self.complete_chain_check = QCheckBox("Complete Chain")
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
         #self.output_button = QPushButton("Display Output")
@@ -65,9 +66,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.threshold_label, 3, 0)
         layout.addWidget(self.threshold_spin, 3, 1)
         layout.addWidget(self.generate_graph_check, 4, 0)
-        layout.addWidget(self.start_button, 5, 0)
-        layout.addWidget(self.stop_button, 5, 1)
-        #layout.addWidget(self.output_button, 6, 0)
+        layout.addWidget(self.complete_chain_check, 5, 0)
+        layout.addWidget(self.start_button, 6, 0)
+        layout.addWidget(self.stop_button, 6, 1)
+        #layout.addWidget(self.output_button, 7, 0)
 
 
         self.connectSlots()
@@ -89,8 +91,9 @@ class MainWindow(QMainWindow):
         window_size = int(self.window_size_spin.text())
         prune_threshold = int(self.threshold_spin.text())
         generate_graph = self.generate_graph_check.isChecked()
+        complete_chain = self.complete_chain_check.isChecked()
 
-        params = (filename, item_count, window_size, prune_threshold, generate_graph)
+        params = (filename, item_count, window_size, prune_threshold, generate_graph, complete_chain)
         self.app = ZarganApp(*params)
         self.computation = Process(target=self.app.run, args=())
         self.computation.start()

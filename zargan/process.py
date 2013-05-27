@@ -27,7 +27,6 @@ import logging
 
 import networkx as nx
 import matplotlib.pyplot as plt
-from utils import generate_histogram
 
 logger = logging.getLogger("ZarganApp")
 logging.basicConfig(level=logging.DEBUG)
@@ -156,7 +155,8 @@ def cluster(data, window_size=300.0):
 
 
 class ZarganApp(object):
-    def __init__(self, filename="zargan/data/filtered.txt", item_count=2400000, window_size=300.0, prune_threshold=20, generate_graph=None):
+    def __init__(self, filename="zargan/data/filtered.txt", item_count=2400000, window_size=300.0, prune_threshold=20,
+                 generate_graph=None, complete_chain=False):
         """Main Application that takes the search data in and finds the co-searched terms.
         Adds edges between those terms and generates a graph. Applies pruning and displays the results.
         Resulting graph is expected to reflect meaningful relationships between nodes (words) that are
@@ -172,11 +172,13 @@ class ZarganApp(object):
         self.window_size = window_size
         self.prune_threshold = prune_threshold
         self.item_count = item_count
+        self.use_complete_chain = complete_chain
         self.graph_choice = None
         if generate_graph is True:
             self.graph_choice = "y"
         elif generate_graph is False:
             self.graph_choice = "n"
+
 
     def run(self):
         """Main method of this class."""
@@ -263,6 +265,59 @@ class ZarganApp(object):
             ho.write("{ip}\t{records}\n".format(ip=ip, records=";".join(map(lambda x: x.arama.encode("utf-8"), self.hash_map[ip]))))
         ho.close()
 
+    def simple_chain(self, clusters):
+        """
+        Connects each two adjacent words in each cluster.
+        @param clusters: cluster list with words in them.
+        @return: nothing. modifies index and occurrence_histogram.
+        """
+        hist = self.occurrence_histogram
+        index = self.index
+
+        for cluster_ in clusters:
+            # for each cluster,
+            for i in xrange(len(cluster_)-1):
+                current = cluster_[i]
+                next = cluster_[i+1]
+
+                # link each two adjacent words.
+                u = current[1].arama
+                v = next[1].arama
+
+                if u == v:
+                    continue
+
+                u_id = index.get_index_of(u)
+                v_id = index.get_index_of(v)
+                if (u_id, v_id) in hist:
+                    hist[(u_id, v_id)] += 1
+                else:
+                    hist[(v_id, u_id)] += 1
+
+    def complete_chain(self, clusters):
+        """
+        For each cluster,
+            Connects each word in a cluster.
+        @param clusters: cluster list with words in them.
+        @return: nothing. modifies index and occurrence_histogram.
+        """
+        hist = self.occurrence_histogram
+        index = self.index
+
+        for cluster_ in clusters:
+            combinations = itertools.combinations(cluster_, 2)
+            for combination in combinations:
+                u = combination[0][1].arama
+                v = combination[1][1].arama
+                if u == v:
+                    continue
+                u_id = index.get_index_of(u)
+                v_id = index.get_index_of(v)
+                if (u_id, v_id) in hist:
+                    hist[(u_id, v_id)] += 1
+                else:
+                    hist[(v_id, u_id)] += 1
+
     def generate_histogram(self):
         """Generates a histogram according to co-session.
         For each IP Address:
@@ -287,24 +342,11 @@ class ZarganApp(object):
             dates = [(search.get_date_in_secs() - min_date, search) for search in searches]
             if len(dates) > 1:
                 clusters = cluster(data=dates, window_size=self.window_size)
+                if self.use_complete_chain:
+                    self.complete_chain(clusters)
+                else:
+                    self.simple_chain(clusters)
 
-                for cluster_ in clusters:
-                    cluster_size = len(cluster_)
-                    if cluster_size > 100:
-                        print("Suspicious IP: {ip}, one cluster: {c}".format(ip=ip, c=cluster_size))
-                        continue
-                    combinations = itertools.combinations(cluster_, 2)
-                    for combination in combinations:
-                        u = combination[0][1].arama
-                        v = combination[1][1].arama
-                        if u == v:
-                            continue
-                        u_id = index.get_index_of(u)
-                        v_id = index.get_index_of(v)
-                        if (u_id, v_id) in hist:
-                            hist[(u_id, v_id)] += 1
-                        else:
-                            hist[(v_id, u_id)] += 1
             if ips % 50000 == 0:
                 logger.debug("{0} IPs - {1} MB".format(ips, sys.getsizeof(hist)/1024.0/1024.0))
 
