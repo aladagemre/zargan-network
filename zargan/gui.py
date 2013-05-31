@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
         self.window_size_spin.setRange(1, 999999)
         self.window_size_spin.setMaximum(999999)
         self.window_size_spin.setValue(300)
-
         self.window_size_spin.setSingleStep(1)
 
         self.threshold_label = QLabel("Edge Threshold")
@@ -47,6 +46,23 @@ class MainWindow(QMainWindow):
         self.threshold_spin.setValue(20)
         self.threshold_spin.setRange(0, 1000)
         self.threshold_spin.setSingleStep(1)
+
+
+        self.per_ip_label = QLabel("Maximum Search per IP")
+        self.per_ip_spin = QSpinBox()
+        self.per_ip_spin.setValue(1000)
+        self.per_ip_spin.setMaximum(999999)
+        self.per_ip_spin.setRange(0, 100000)
+        self.per_ip_spin.setSingleStep(100)
+
+
+        self.per_session_label = QLabel("Maximum Search per Session")
+        self.per_session_spin = QSpinBox()
+        self.per_session_spin.setValue(100)
+        self.per_session_spin.setMaximum(999999)
+        self.per_session_spin.setRange(0, 1000)
+        self.per_session_spin.setSingleStep(1)
+
 
         self.generate_graph_check = QCheckBox("Generate Graph")
         self.complete_chain_check = QCheckBox("Complete Chain")
@@ -65,10 +81,17 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.window_size_spin, 2, 1)
         layout.addWidget(self.threshold_label, 3, 0)
         layout.addWidget(self.threshold_spin, 3, 1)
-        layout.addWidget(self.generate_graph_check, 4, 0)
-        layout.addWidget(self.complete_chain_check, 5, 0)
-        layout.addWidget(self.start_button, 6, 0)
-        layout.addWidget(self.stop_button, 6, 1)
+
+        layout.addWidget(self.per_ip_label, 4, 0)
+        layout.addWidget(self.per_ip_spin, 4, 1)
+
+        layout.addWidget(self.per_session_label, 5, 0)
+        layout.addWidget(self.per_session_spin, 5, 1)
+
+        layout.addWidget(self.generate_graph_check, 6, 0)
+        layout.addWidget(self.complete_chain_check, 7, 0)
+        layout.addWidget(self.start_button, 8, 0)
+        layout.addWidget(self.stop_button, 8, 1)
         #layout.addWidget(self.output_button, 7, 0)
 
 
@@ -90,11 +113,17 @@ class MainWindow(QMainWindow):
         item_count = int(self.line_count_edit.text())
         window_size = int(self.window_size_spin.text())
         prune_threshold = int(self.threshold_spin.text())
+        per_ip = int(self.per_ip_spin.text())
+        per_session = int(self.per_session_spin.text())
         generate_graph = self.generate_graph_check.isChecked()
         complete_chain = self.complete_chain_check.isChecked()
 
-        params = (filename, item_count, window_size, prune_threshold, generate_graph, complete_chain)
-        self.app = ZarganApp(*params)
+        #params = (filename, item_count, window_size, prune_threshold, per_ip, per_session, generate_graph, complete_chain)
+        #self.app = ZarganApp(*params)
+        self.app = ZarganApp(filename=filename, item_count=item_count, window_size=window_size,
+                             prune_threshold=prune_threshold, per_ip=per_ip, per_session=per_session,
+                             generate_graph=generate_graph, complete_chain=complete_chain)
+
         self.computation = Process(target=self.app.run, args=())
         self.computation.start()
 

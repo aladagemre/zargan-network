@@ -156,6 +156,7 @@ def cluster(data, window_size=300.0):
 
 class ZarganApp(object):
     def __init__(self, filename="zargan/data/filtered.txt", item_count=2400000, window_size=300.0, prune_threshold=20,
+                 per_ip=1000, per_session=100,
                  generate_graph=None, complete_chain=False):
         """Main Application that takes the search data in and finds the co-searched terms.
         Adds edges between those terms and generates a graph. Applies pruning and displays the results.
@@ -171,6 +172,8 @@ class ZarganApp(object):
         self.filename = filename
         self.window_size = window_size
         self.prune_threshold = prune_threshold
+        self.per_ip = per_ip
+        self.per_sesssion = per_session
         self.item_count = item_count
         self.use_complete_chain = complete_chain
         self.graph_choice = None
@@ -247,7 +250,7 @@ class ZarganApp(object):
         remove_candidate = []
         for ip in ips:
             count = len(self.hash_map[ip])
-            if count > 1000:
+            if count > self.per_ip:
                 remove_candidate.append(ip)
                 #tuples.append((count, ip))
                 #print "{1} - {0}".format(ip, count)
@@ -265,7 +268,7 @@ class ZarganApp(object):
             ho.write("{ip}\t{records}\n".format(ip=ip, records=";".join(map(lambda x: x.arama.encode("utf-8"), self.hash_map[ip]))))
         ho.close()
 
-    def simple_chain(self, clusters):
+    def simple_chain(self, ip, clusters):
         """
         Connects each two adjacent words in each cluster.
         @param clusters: cluster list with words in them.
@@ -275,7 +278,11 @@ class ZarganApp(object):
         index = self.index
 
         for cluster_ in clusters:
-            # for each cluster,
+            cluster_size = len(cluster_)
+            if cluster_size > self.per_sesssion:
+                print("Suspicious IP: {ip}, one cluster: {c}".format(ip=ip, c=cluster_size))
+                continue
+
             for i in xrange(len(cluster_)-1):
                 current = cluster_[i]
                 next = cluster_[i+1]
@@ -294,7 +301,7 @@ class ZarganApp(object):
                 else:
                     hist[(v_id, u_id)] += 1
 
-    def complete_chain(self, clusters):
+    def complete_chain(self, ip, clusters):
         """
         For each cluster,
             Connects each word in a cluster.
@@ -305,6 +312,10 @@ class ZarganApp(object):
         index = self.index
 
         for cluster_ in clusters:
+            cluster_size = len(cluster_)
+            if cluster_size > self.per_sesssion:
+                print("Suspicious IP: {ip}, one cluster: {c}".format(ip=ip, c=cluster_size))
+                continue
             combinations = itertools.combinations(cluster_, 2)
             for combination in combinations:
                 u = combination[0][1].arama
@@ -343,9 +354,9 @@ class ZarganApp(object):
             if len(dates) > 1:
                 clusters = cluster(data=dates, window_size=self.window_size)
                 if self.use_complete_chain:
-                    self.complete_chain(clusters)
+                    self.complete_chain(ip, clusters)
                 else:
-                    self.simple_chain(clusters)
+                    self.simple_chain(ip, clusters)
 
             if ips % 50000 == 0:
                 logger.debug("{0} IPs - {1} MB".format(ips, sys.getsizeof(hist)/1024.0/1024.0))
