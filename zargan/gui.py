@@ -50,16 +50,16 @@ class MainWindow(QMainWindow):
 
         self.per_ip_label = QLabel("Maximum Search per IP")
         self.per_ip_spin = QSpinBox()
-        self.per_ip_spin.setValue(1000)
         self.per_ip_spin.setMaximum(999999)
+        self.per_ip_spin.setValue(1000)
         self.per_ip_spin.setRange(0, 100000)
         self.per_ip_spin.setSingleStep(100)
 
 
         self.per_session_label = QLabel("Maximum Search per Session")
         self.per_session_spin = QSpinBox()
-        self.per_session_spin.setValue(100)
         self.per_session_spin.setMaximum(999999)
+        self.per_session_spin.setValue(100)
         self.per_session_spin.setRange(0, 1000)
         self.per_session_spin.setSingleStep(1)
 
